@@ -4,10 +4,12 @@ module Main (
             ) where
 
 import           BookLibrary
+import           Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V
 import           System.Environment (getArgs)
+import           System.IO (openTempFile, hClose)
 import           Tools
 import           Types
 
@@ -29,21 +31,30 @@ initiate Nothing libraryFile = do
   initiate (Just answer) libraryFile
 initiate (Just "no") _ = putStrLn "Initialization aborded, library book left untouched."
 initiate (Just "yes") libraryFile = do
+  -- Ask user for his master pwd, check that it doesn't already exist and generate a random filename for it
   masterPwd <- askMasterPwd
-  putStrLn $ "<DEBUG> Init " ++ masterPwd
+  pwdExist <- libraryLookup masterPwd
+  case pwdExist of
+    Just _ -> putStrLn "There already exists a library file associated with that master password.\n\
+                       \Consider re-using or chose another master password."
+    Nothing -> do
+      (filename, h) <- hpmFolder >>= flip openTempFile "bookEntry"
+      withLibrary $ \libraryFile -> do
+                  let libEntry = encode [LibraryEntry masterPwd filename]
+                  B.appendFile libraryFile libEntry
+      hClose h
+      putStrLn "New library book initiated. You can start storing passwords now."
+  
 initiate _ libraryFile = putStrLn "Answer with \"yes\" or \"no\"." >> initiate Nothing libraryFile
 
 -- Lookup generalized for the library book to be used with 'withLibrary'
-{-
-  TODO : use withLibrary inside that function rather than reading the file like this
--}
-libraryLookup :: PwdHash -> FilePath -> IO (Maybe FilePath)
-libraryLookup pwd libraryFile = do
-  libraryRaw <- B.readFile libraryFile
-  let libraryDec = decode NoHeader libraryRaw :: Either String (V.Vector LibraryEntry)
-  case libraryDec of
-    Left _ -> error $ "Error while trying to read the library, file may be corrupted\n"
-    Right library -> return $ entryLookup pwd (V.toList library)
+libraryLookup :: PwdHash -> IO (Maybe FilePath)
+libraryLookup pwd = withLibrary $ \libraryFile -> do
+                      libraryRaw <- B.readFile libraryFile
+                      let libraryDec = decode NoHeader libraryRaw :: Either String (V.Vector LibraryEntry)
+                      case libraryDec of
+                        Left _ -> error $ "Error while trying to read the library, file may be corrupted\n"
+                        Right library -> return $ entryLookup pwd (V.toList library)
 
 -- lookup like function that applies to LibraryEntry data type
 entryLookup :: PwdHash -> [LibraryEntry] -> Maybe FilePath
