@@ -3,6 +3,7 @@ module Tools (
              , hpmFolder
              , libraryFile
              , withLibrary
+             , noEntryBook
              ) where
 
 import           BookLibrary
@@ -17,7 +18,14 @@ usage :: String
 usage = concat [ "Usage : hpm\t-h, --help : display this message\n"
                        , "\t\t-l, --list : list all entries\n"
                        , "\t\t-i, --init : initiate a new entry book with a new master password\n"
-                       ]
+                       , "\t\t-r, --reset : reset your entry book by deleting all stored passwords in it\n"
+               ]
+
+-- Error message displayed when no entry book was found
+noEntryBook :: String
+noEntryBook = "No entry book associated with that master password was found.\n\
+              \Initiate a new entry book with --init, -i or consider reading\
+              \the help with --help, -h.\n"
 
 -- The hpm folder, containing the library and the entry books
 hpmFolder :: IO FilePath

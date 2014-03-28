@@ -21,9 +21,16 @@ recover project. Looks awesome.
     - Asking for master password and checking if a corresponding entry
 book is associated
 
-
+- March 28, 2014
+    - Initialization of new library books is working : several books
+can be created with different master passwords, and hpm warns the user
+if he is trying to create a book with the same master password
+    - Implemented reset of a new entry book : deletes all passwords in
+the entry book associated with his master password
 
 TODO
 ====
 - Hide the character typing in the terminal when asking the user its
 master password
+- Implement hashing of master password
+- Implement encryption of library book and entry books

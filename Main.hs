@@ -1,10 +1,11 @@
+{-#LANGUAGE OverloadedStrings#-}
+
 module Main (
               main
             , libraryLookup
             ) where
 
 import           BookLibrary
-import           Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V
@@ -22,15 +23,18 @@ main = getArgs >>= go
           go ("-l":_) = go ["--list"]
           go ("--init":_) = withLibrary (initiate Nothing)
           go ("-i":_) = go ["--init"]
+          go ("--reset":_) = reset Nothing
+          go ("-r":_) = go ["--reset"]
+          go _ = putStrLn $ "Error in arguments.\n" ++ usage
 
 -- Prompt the user for a new master password and create his associated entry book
 initiate :: Maybe String -> FilePath -> IO ()
-initiate Nothing libraryFile = do
+initiate Nothing libFile = do
   putStrLn $ "You are going to create a new, empty entry book, are you sure you want to continue ? (yes/no)"
   answer <- getLine
-  initiate (Just answer) libraryFile
+  initiate (Just answer) libFile
 initiate (Just "no") _ = putStrLn "Initialization aborded, library book left untouched."
-initiate (Just "yes") libraryFile = do
+initiate (Just "yes") libFile = do
   -- Ask user for his master pwd, check that it doesn't already exist and generate a random filename for it
   masterPwd <- askMasterPwd
   pwdExist <- libraryLookup masterPwd
@@ -39,18 +43,17 @@ initiate (Just "yes") libraryFile = do
                        \Consider re-using or chose another master password."
     Nothing -> do
       (filename, h) <- hpmFolder >>= flip openTempFile "bookEntry"
-      withLibrary $ \libraryFile -> do
-                  let libEntry = encode [LibraryEntry masterPwd filename]
-                  B.appendFile libraryFile libEntry
+      let libEntry = encode [LibraryEntry masterPwd filename]
+      B.appendFile libFile libEntry
       hClose h
       putStrLn "New library book initiated. You can start storing passwords now."
   
-initiate _ libraryFile = putStrLn "Answer with \"yes\" or \"no\"." >> initiate Nothing libraryFile
+initiate _ libFile = putStrLn "Answer with \"yes\" or \"no\"." >> initiate Nothing libFile
 
 -- Lookup generalized for the library book to be used with 'withLibrary'
 libraryLookup :: PwdHash -> IO (Maybe FilePath)
-libraryLookup pwd = withLibrary $ \libraryFile -> do
-                      libraryRaw <- B.readFile libraryFile
+libraryLookup pwd = withLibrary $ \libFile -> do
+                      libraryRaw <- B.readFile libFile
                       let libraryDec = decode NoHeader libraryRaw :: Either String (V.Vector LibraryEntry)
                       case libraryDec of
                         Left _ -> error $ "Error while trying to read the library, file may be corrupted\n"
@@ -63,3 +66,20 @@ entryLookup pwdHash (x:xs) = if (getLibraryHash x) == pwdHash then
                                  Just (getLibraryFile x)
                              else
                                  entryLookup pwdHash xs
+
+-- Ask for master password and delete all stored passwords in an entry book
+reset :: Maybe String -> IO ()
+reset Nothing = do
+  putStrLn "You are about to delete all stored passwords in your entry book, are you sure ?(yes/no)"
+  answer <- getLine
+  reset (Just answer)
+reset (Just "no") = putStrLn "Reset aborded, entry book left untouched."
+reset (Just "yes") = do
+  masterPwd <- askMasterPwd
+  bookEntry <- libraryLookup masterPwd
+  go bookEntry
+      where go Nothing          = putStrLn noEntryBook
+            go (Just entryBook) = do 
+                                   B.writeFile entryBook "" -- write empty string in file to erase its contents
+                                   putStrLn "Entry book was erased successfully.\n"
+reset _ = putStrLn "Please answer with \"yes\" or \"no\".\n" >> reset Nothing
