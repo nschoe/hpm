@@ -15,5 +15,15 @@ Changelog
 =========
 
 - March 26, 2014
-Project initialization. I am going back to Haskell, and this is a
+    - Project initialization. I am going back to Haskell, and this is a
 recover project. Looks awesome.
+    - Verification of existing ~/.hpm/ folder and create it if non existing
+    - Asking for master password and checking if a corresponding entry
+book is associated
+
+
+
+TODO
+====
+- Hide the character typing in the terminal when asking the user its
+master password

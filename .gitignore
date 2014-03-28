@@ -1,2 +1,6 @@
 *.o
 *~
+*.hi
+build
+clean
+hpm
