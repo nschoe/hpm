@@ -3,12 +3,10 @@ module Tools (
              , hpmFolder
              , libraryFile
              , withLibrary
+             , withBook
              , noEntryBook
              ) where
 
-import           BookLibrary
-import           Control.Monad (liftM, mapM_)
-import qualified Data.ByteString.Lazy as B
 import           Data.Functor ((<$>))
 import           System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
 import           System.FilePath ((</>))
@@ -19,12 +17,13 @@ usage = concat [ "Usage : hpm\t-h, --help : display this message\n"
                        , "\t\t-l, --list : list all entries\n"
                        , "\t\t-i, --init : initiate a new entry book with a new master password\n"
                        , "\t\t-r, --reset : reset your entry book by deleting all stored passwords in it\n"
+                       , "\t\t-a, --add <service> <user> : add a new password for service <service> with user <user>, the password will be prompted on a secure shell.\n"
                ]
 
 -- Error message displayed when no entry book was found
 noEntryBook :: String
 noEntryBook = "No entry book associated with that master password was found.\n\
-              \Initiate a new entry book with --init, -i or consider reading\
+              \Initiate a new entry book with --init, -i or consider reading \
               \the help with --help, -h.\n"
 
 -- The hpm folder, containing the library and the entry books
@@ -45,10 +44,12 @@ withLibrary f = do
   else
       libraryFile >>= flip writeFile "" >> libraryFile >>= f
 
-{- Handles verification of the master password to carry out computation
-   on the contents of the entry book file read as a lazy ByteString -}
-{-withPassword :: String -> (B.ByteString -> IO a) -> IO a
-withPassword pwd f = withLibrary $ \booklibary -> do
-                     libraryRaw <- B.readFile booklibary
-                     lookup
--}
+{- Handles the test to verify that the entry book exists to carry out computation.
+   Argument should be full path name. -}
+withBook :: FilePath -> (FilePath -> IO a) -> IO a
+withBook book f = do
+  exists <- doesFileExist book
+  case exists of
+    False -> error "The entry book doesn't exist, you may be looking at data corruption."
+    True -> f book
+

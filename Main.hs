@@ -6,6 +6,7 @@ module Main (
             ) where
 
 import           BookLibrary
+import Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V
@@ -25,6 +26,8 @@ main = getArgs >>= go
           go ("-i":_) = go ["--init"]
           go ("--reset":_) = reset Nothing
           go ("-r":_) = go ["--reset"]
+          go ("--add":service:user:_) = add service user
+          go ("-a":service:user:_) = go ["--add", service, user]
           go _ = putStrLn $ "Error in arguments.\n" ++ usage
 
 -- Prompt the user for a new master password and create his associated entry book
@@ -59,6 +62,22 @@ libraryLookup pwd = withLibrary $ \libFile -> do
                         Left _ -> error $ "Error while trying to read the library, file may be corrupted\n"
                         Right library -> return $ entryLookup pwd (V.toList library)
 
+-- Lookup generalized for the entry book.
+bookLookup :: FilePath -> Service -> IO (Maybe Pwd)
+bookLookup book serv = do
+  entries <- decode NoHeader <$> B.readFile book
+  case entries of
+    Left _ -> error "There was a problem when parsing your Csv data.\n\
+                      \Consider resetting your file (all passwords will be lost)."
+    Right entries' -> return $ bookLookup' serv (V.toList entries')
+
+bookLookup' :: Service -> [PasswordEntry] -> Maybe Pwd
+bookLookup' _ [] = Nothing
+bookLookup' serv (x:xs) = if serv == getService x then
+                              Just (getPwd x)
+                          else
+                              bookLookup' serv xs
+
 -- lookup like function that applies to LibraryEntry data type
 entryLookup :: PwdHash -> [LibraryEntry] -> Maybe FilePath
 entryLookup _ [] = Nothing
@@ -67,7 +86,7 @@ entryLookup pwdHash (x:xs) = if (getLibraryHash x) == pwdHash then
                              else
                                  entryLookup pwdHash xs
 
--- Ask for master password and delete all stored passwords in an entry book
+-- Prompt for master password and delete all stored passwords in an entry book
 reset :: Maybe String -> IO ()
 reset Nothing = do
   putStrLn "You are about to delete all stored passwords in your entry book, are you sure ?(yes/no)"
@@ -83,3 +102,22 @@ reset (Just "yes") = do
                                    B.writeFile entryBook "" -- write empty string in file to erase its contents
                                    putStrLn "Entry book was erased successfully.\n"
 reset _ = putStrLn "Please answer with \"yes\" or \"no\".\n" >> reset Nothing
+
+-- Prompt for master password and store the new entry in the associated entry book
+add :: Service -> User -> IO ()
+add [] _ = putStrLn $ "Error in arguments.\n" ++ usage
+add _ [] = add [] [] -- calls above
+add service user =
+    askPassword (Just "Type your MASTER password to access your entry book.\n") >>= libraryLookup >>= go
+        where go Nothing = putStrLn noEntryBook
+              go (Just entryBook) = do
+                -- Check that there is not already a password entry for that service
+                exists <- withBook entryBook (flip bookLookup service)
+                case exists of
+                  Just _  -> putStrLn $ "There already exists a password entry for service \"" ++ service ++ "\" in your book."
+                  Nothing -> do
+                              pwd <- askPassword (Just $ "Type the password you want to associate to service \"" ++ service ++ "\" and user \"" ++ user ++ "\": ")
+                              let newEntry = encode [PasswordEntry service user pwd]
+                              B.appendFile entryBook newEntry
+                              putStrLn "New password entry added to entry book."
+                

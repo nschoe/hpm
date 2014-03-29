@@ -17,7 +17,7 @@ import Control.Monad (mzero)
 type PwdHash = B.ByteString
 type Service = String
 type User = String
-type Pwd = String
+type Pwd = B.ByteString
 
 -- Represents an entry inside the library book
 data LibraryEntry = LibraryEntry {

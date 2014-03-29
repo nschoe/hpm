@@ -28,8 +28,16 @@ if he is trying to create a book with the same master password
     - Implemented reset of a new entry book : deletes all passwords in
 the entry book associated with his master password
 
+- March 29, 2014
+    - Adding a new entry in one's book is working with the limitation
+of one password entry per service (this is a choice : so that we can
+extract a password with just **hpm -e service** rather than
+**hpm -e service user** ; the tool is designed to be *quick* to use)
+
 TODO
 ====
+- Rewrite 'initiate' function to use 'withLibrary' rather than calling
+'withLibrary initiate' in the main function
 - Hide the character typing in the terminal when asking the user its
 master password
 - Implement hashing of master password
