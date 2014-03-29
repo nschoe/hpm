@@ -20,6 +20,7 @@ usage = concat [ "Usage : hpm\t-h, --help : display this message.\n"
                        , "\t\t-r, --reset : reset your entry book by deleting all stored passwords in it.\n"
                        , "\t\t-a, --add <service> <user> : add a new password for service <service> with user <user>, the password will be prompted on a secure shell.\n"
                        , "\t\t-d, --delete <service> : delete the stored password for service <service>.\n"
+                       , "\t\t-e, --extract <service> : extract a password for service <service>.\n"
                ]
 
 -- Error message displayed when no entry book was found

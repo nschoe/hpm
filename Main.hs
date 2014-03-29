@@ -16,20 +16,22 @@ import           Types
 
 main :: IO ()
 main = getArgs >>= go
-    where go [] = putStrLn $ "Wrong number of arguments.\n" ++ usage -- no argument : what do to ?
-          go ("--help":_) = putStrLn usage
-          go ("-h":_) = go ["--help"]
-          go ("--list":_) = list
-          go ("-l":_) = go ["--list"]
-          go ("--init":_) = withLibrary (initiate Nothing)
-          go ("-i":_) = go ["--init"]
-          go ("--reset":_) = reset Nothing
-          go ("-r":_) = go ["--reset"]
+    where go []                       = putStrLn $ "Wrong number of arguments.\n" ++ usage -- no argument : what do to ?
+          go ("--help":_)             = putStrLn usage
+          go ("-h":_)                 = go ["--help"]
+          go ("--list":_)             = list
+          go ("-l":_)                 = go ["--list"]
+          go ("--init":_)             = withLibrary (initiate Nothing)
+          go ("-i":_)                 = go ["--init"]
+          go ("--reset":_)            = reset Nothing
+          go ("-r":_)                 = go ["--reset"]
           go ("--add":service:user:_) = add service user
-          go ("-a":service:user:_) = go ["--add", service, user]
-          go ("--delete":service:_) = delete service
-          go ("-d":service:_) = go ["--delete", service]
-          go _ = putStrLn $ "Error in arguments.\n" ++ usage
+          go ("-a":service:user:_)    = go ["--add", service, user]
+          go ("--delete":service:_)   = delete service
+          go ("-d":service:_)         = go ["--delete", service]
+          go ("--extract":service:_)  = extract service
+          go ("-e":service:_)         = go ["--extract", service]
+          go _                        = putStrLn $ "Error in arguments.\n" ++ usage
 
 -- Prompt the user for a new master password and create his associated entry book
 initiate :: Maybe String -> FilePath -> IO ()
@@ -149,3 +151,19 @@ delete service = do
                                let newEntries = flip V.filter entries' (\e -> service /= getService e)
                                B.writeFile entryBook (encode $ V.toList newEntries)
                                putStrLn "Password entry removed if it existed.\n"
+
+-- Extracts a password associated to the service
+extract :: Service -> IO ()
+extract service = do
+  exists <- askMasterPwd >>= libraryLookup
+  case exists of
+    Nothing        -> putStrLn noEntryBook
+    Just entryBook -> do
+                entries <- (decode NoHeader <$> (B.readFile entryBook)) :: IO (Either String (V.Vector PasswordEntry))
+                case entries of
+                  Left _         -> putStrLn parsingProblem
+                  Right _ -> do
+                               pass <- bookLookup entryBook service
+                               case pass of
+                                 Nothing    -> putStrLn $ "No password entry for service \"" ++ service ++ "\" found in your entry book."
+                                 Just pass' -> B.putStr pass' >> B.putStr "\n"

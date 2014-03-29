@@ -8,8 +8,39 @@ etc. Namely, hpm won't sync with external *data-sucking* servers nor
 will it ask you to *Like it* or *Tweet it* or whatever ; sometimes
 things should do what they were intended to do, hpm is a password
 manager, so it will store and manage your passwords.
+
 You can start using really long and hard to guess passwords for
-everything, as it will hpm's job to remember them for you.
+everything, as it will hpm's job to remember them for you !
+
+Usage
+=====
+
+Note : 
+- a service design the entity to which your (user, password) pair is
+associated, put whatever you want in it : website name, program name,
+etc
+- a user is typically the id used to identify, sometimes it is your
+username, sometimes it is your email address.
+- a password is, well ... your password. As you won't have neither to
+remember nor to type it, I suggest you start using *real* passwords
+like 'dhh*&4*4"}{++)Jd$£fn' and so on. You can go to
+howsecureismypassword.net to have some hints about your password
+strength (just be aware that the computing power they estimate is the
+one of a single desktop PC, not a multi-million server, so you'd
+better divide the number by 1e6 to have a more accurate description)
+
+
+Here's how to use hpm :
+-----------------------
+
+- create an new entry book and a master password : hpm -i, --init (a
+master password is the only password you will have to remember to
+manage your passwords, a book is the (encrypted) list of passwords)
+- adding a new password : hpm -a, --ass <service> <user> (you will be
+  prompted for the password you want to add to that service)
+- extracting a password for a service : hpm -e, --extract <service>
+- deleting a stored password : hpm -d, --delete <service>
+- listing your services for which you have a stored password : hpm -l, --list
 
 Changelog
 =========
@@ -37,6 +68,7 @@ extract a password with just **hpm -e service** rather than
     - Deleting an entry working (deletion is quiet : it won't warn
 your nor will it fail is you try to delete a non-existing entry, in
 this case, your book will jsut stay the same, again for speed of use)
+    - Extracting an entry is working
 
 TODO
 ====
@@ -47,4 +79,6 @@ master password
 - Implement hashing of master password
 - Implement encryption of library book and entry books
 - Rewrite the code in a more elegant fashion : capture the redundant
-code between 'list' and 'delete' for instance
+code between 'list', 'delete' and 'extract' for instance or the
+awkward 'Right _' and 'Left _' cases in 'extract' function : I'm
+pretty sure it sounds Monad-ish behavior.
