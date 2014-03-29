@@ -34,6 +34,9 @@ of one password entry per service (this is a choice : so that we can
 extract a password with just **hpm -e service** rather than
 **hpm -e service user** ; the tool is designed to be *quick* to use)
     - Listing and counting stored entries working
+    - Deleting an entry working (deletion is quiet : it won't warn
+your nor will it fail is you try to delete a non-existing entry, in
+this case, your book will jsut stay the same, again for speed of use)
 
 TODO
 ====
@@ -43,3 +46,5 @@ TODO
 master password
 - Implement hashing of master password
 - Implement encryption of library book and entry books
+- Rewrite the code in a more elegant fashion : capture the redundant
+code between 'list' and 'delete' for instance

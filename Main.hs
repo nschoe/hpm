@@ -27,6 +27,8 @@ main = getArgs >>= go
           go ("-r":_) = go ["--reset"]
           go ("--add":service:user:_) = add service user
           go ("-a":service:user:_) = go ["--add", service, user]
+          go ("--delete":service:_) = delete service
+          go ("-d":service:_) = go ["--delete", service]
           go _ = putStrLn $ "Error in arguments.\n" ++ usage
 
 -- Prompt the user for a new master password and create his associated entry book
@@ -132,3 +134,18 @@ list = do
                   Left _         -> putStrLn parsingProblem
                   Right entries' -> putStrLn ("\nShowing (" ++ show (V.length entries') ++ ") entries :")
                                     >> mapM_ (putStrLn . ("  > " ++) . show) (V.toList entries')
+
+-- Deletes a password entry associated to the service
+delete :: Service -> IO ()
+delete service = do
+  exists <- askMasterPwd >>= libraryLookup
+  case exists of
+    Nothing        -> putStrLn noEntryBook
+    Just entryBook -> do
+                entries <- (decode NoHeader <$> (B.readFile entryBook)) :: IO (Either String (V.Vector PasswordEntry))
+                case entries of
+                  Left _         -> putStrLn parsingProblem
+                  Right entries' -> do
+                               let newEntries = flip V.filter entries' (\e -> service /= getService e)
+                               B.writeFile entryBook (encode $ V.toList newEntries)
+                               putStrLn "Password entry removed if it existed.\n"
