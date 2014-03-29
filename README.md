@@ -33,6 +33,7 @@ the entry book associated with his master password
 of one password entry per service (this is a choice : so that we can
 extract a password with just **hpm -e service** rather than
 **hpm -e service user** ; the tool is designed to be *quick* to use)
+    - Listing and counting stored entries working
 
 TODO
 ====

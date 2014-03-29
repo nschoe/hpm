@@ -2,11 +2,10 @@
 
 module Main (
               main
-            , libraryLookup
             ) where
 
 import           BookLibrary
-import Control.Applicative ((<$>))
+import           Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V
@@ -20,7 +19,7 @@ main = getArgs >>= go
     where go [] = putStrLn $ "Wrong number of arguments.\n" ++ usage -- no argument : what do to ?
           go ("--help":_) = putStrLn usage
           go ("-h":_) = go ["--help"]
-          go ("--list":_) = undefined
+          go ("--list":_) = list
           go ("-l":_) = go ["--list"]
           go ("--init":_) = withLibrary (initiate Nothing)
           go ("-i":_) = go ["--init"]
@@ -67,8 +66,7 @@ bookLookup :: FilePath -> Service -> IO (Maybe Pwd)
 bookLookup book serv = do
   entries <- decode NoHeader <$> B.readFile book
   case entries of
-    Left _ -> error "There was a problem when parsing your Csv data.\n\
-                      \Consider resetting your file (all passwords will be lost)."
+    Left _ -> error parsingProblem
     Right entries' -> return $ bookLookup' serv (V.toList entries')
 
 bookLookup' :: Service -> [PasswordEntry] -> Maybe Pwd
@@ -121,3 +119,16 @@ add service user =
                               B.appendFile entryBook newEntry
                               putStrLn "New password entry added to entry book."
                 
+
+-- List password entries from an entry book
+list :: IO ()
+list = do
+  exists <- askMasterPwd >>= libraryLookup
+  case exists of
+    Nothing        -> putStrLn noEntryBook
+    Just entryBook -> do
+                entries <- (decode NoHeader <$> (B.readFile entryBook)) :: IO (Either String (V.Vector PasswordEntry))
+                case entries of
+                  Left _         -> putStrLn parsingProblem
+                  Right entries' -> putStrLn ("\nShowing (" ++ show (V.length entries') ++ ") entries :")
+                                    >> mapM_ (putStrLn . ("  > " ++) . show) (V.toList entries')

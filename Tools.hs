@@ -5,6 +5,7 @@ module Tools (
              , withLibrary
              , withBook
              , noEntryBook
+             , parsingProblem
              ) where
 
 import           Data.Functor ((<$>))
@@ -25,6 +26,11 @@ noEntryBook :: String
 noEntryBook = "No entry book associated with that master password was found.\n\
               \Initiate a new entry book with --init, -i or consider reading \
               \the help with --help, -h.\n"
+
+-- Errot to display when 'decode' function fails
+parsingProblem :: String
+parsingProblem = "There was a problem when parsing your Csv data.\n\
+                 \Consider resetting your file (all passwords will be lost)."
 
 -- The hpm folder, containing the library and the entry books
 hpmFolder :: IO FilePath
