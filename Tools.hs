@@ -12,6 +12,7 @@ import           Data.Functor ((<$>))
 import           System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
 import           System.FilePath ((</>))
 
+
 -- Classic usage command showing commands and their syntax
 usage :: String
 usage = concat [ "Usage : hpm\t-h, --help : display this message.\n"

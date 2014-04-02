@@ -74,15 +74,22 @@ this case, your book will jsut stay the same, again for speed of use)
     - Implemeted SHA512-hashing of master passwords to store the hash
 in the book library
 
+- April 2, 2014
+    - Removed SHA512-hasing of master passwords as it throws some
+problems for now. It doesn't really matter much : the library file is
+already encrypted, so the master passwords never appear in plain text
+    - Implemented hiding of characters when typing passwords
+    - Now the password is stored in the clipboard when extracted, not
+printed on screen anymore
+
 TODO
 ====
 - Rewrite 'initiate' function to use 'withLibrary' rather than calling
 'withLibrary initiate' in the main function
-- Hide the character typing in the terminal when asking the user its
-master password
-- Implement hashing of master password
-- Implement encryption of library book and entry books
 - Rewrite the code in a more elegant fashion : capture the redundant
 code between 'list', 'delete' and 'extract' for instance or the
 awkward 'Right _' and 'Left _' cases in 'extract' function : I'm
 pretty sure it sounds Monad-ish behavior.
+- Create a new thread that waits 10 seconds and then erase the
+contents of the clipboard when extracting a password. So that the
+password doesn't remain in the clipboard.

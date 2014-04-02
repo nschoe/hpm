@@ -7,6 +7,7 @@ module Main (
 import           BookLibrary
 import           Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as B8
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V
 import           Encrypt
@@ -15,6 +16,7 @@ import           System.Environment (getArgs)
 import           System.IO (openTempFile, hClose)
 import           Tools
 import           Types
+import System.Process (runCommand)
 
 main :: IO ()
 main = getArgs >>= go
@@ -166,6 +168,7 @@ delete service = do
                                putStrLn "Password entry removed if it existed.\n"
 
 -- Extracts a password associated to the service
+
 extract :: Service -> IO ()
 extract service = do
   exists <- askMasterPwd >>= libraryLookup
@@ -179,4 +182,6 @@ extract service = do
                                pass <- bookLookup entryBook service
                                case pass of
                                  Nothing    -> putStrLn $ "No password entry for service \"" ++ service ++ "\" found in your entry book."
-                                 Just pass' -> B.putStr pass' >> B.putStr "\n"
+                                 Just pass' -> do
+                                           let passStr = B8.unpack pass'
+                                           runCommand ("echo " ++ passStr ++ " | xclip -i") >> putStrLn "Password now in clipboard."

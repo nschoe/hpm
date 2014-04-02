@@ -12,6 +12,7 @@ import Codec.Crypto.SimpleAES
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as B (ByteString, toStrict, filter, notElem)
 
+
 -- Hash a (master) password with SHA512
 hashPassword :: B.ByteString -> ByteString
 --hashPassword = hash SHA512ibrary 
