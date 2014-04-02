@@ -9,6 +9,8 @@ import           Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V
+import           Encrypt
+import           System.Directory (renameFile)
 import           System.Environment (getArgs)
 import           System.IO (openTempFile, hClose)
 import           Tools
@@ -49,9 +51,15 @@ initiate (Just "yes") libFile = do
                        \Consider re-using or chose another master password."
     Nothing -> do
       (filename, h) <- hpmFolder >>= flip openTempFile "bookEntry"
-      let libEntry = encode [LibraryEntry masterPwd filename]
-      B.appendFile libFile libEntry
       hClose h
+      let libEntry = encode [LibraryEntry masterPwd filename]
+      oldDecrypted <- B.readFile libFile >>= return . decrypt
+      let newDecrypted = oldDecrypted `B.append` libEntry
+      newEncrypted <- encrypt newDecrypted
+      (tempName, tempH) <- hpmFolder >>= flip openTempFile ".tempLibrary"
+      hClose tempH
+      B.writeFile tempName newEncrypted
+      renameFile tempName libFile
       putStrLn "New library book initiated. You can start storing passwords now."
   
 initiate _ libFile = putStrLn "Answer with \"yes\" or \"no\"." >> initiate Nothing libFile
@@ -59,7 +67,7 @@ initiate _ libFile = putStrLn "Answer with \"yes\" or \"no\"." >> initiate Nothi
 -- Lookup generalized for the library book to be used with 'withLibrary'
 libraryLookup :: PwdHash -> IO (Maybe FilePath)
 libraryLookup pwd = withLibrary $ \libFile -> do
-                      libraryRaw <- B.readFile libFile
+                      libraryRaw <- B.readFile libFile >>= return . decrypt
                       let libraryDec = decode NoHeader libraryRaw :: Either String (V.Vector LibraryEntry)
                       case libraryDec of
                         Left _ -> error $ "Error while trying to read the library, file may be corrupted\n"
@@ -68,7 +76,7 @@ libraryLookup pwd = withLibrary $ \libFile -> do
 -- Lookup generalized for the entry book.
 bookLookup :: FilePath -> Service -> IO (Maybe Pwd)
 bookLookup book serv = do
-  entries <- decode NoHeader <$> B.readFile book
+  entries <- decode NoHeader <$> (B.readFile book >>= return . decrypt)
   case entries of
     Left _ -> error parsingProblem
     Right entries' -> return $ bookLookup' serv (V.toList entries')
@@ -101,7 +109,7 @@ reset (Just "yes") = do
   go bookEntry
       where go Nothing          = putStrLn noEntryBook
             go (Just entryBook) = do 
-                                   B.writeFile entryBook "" -- write empty string in file to erase its contents
+                                   encrypt "" >>= B.writeFile entryBook -- write empty string in file to erase its contents
                                    putStrLn "Entry book was erased successfully.\n"
 reset _ = putStrLn "Please answer with \"yes\" or \"no\".\n" >> reset Nothing
 
@@ -120,7 +128,12 @@ add service user =
                   Nothing -> do
                               pwd <- askPassword (Just $ "Type the password you want to associate to service \"" ++ service ++ "\" and user \"" ++ user ++ "\": ")
                               let newEntry = encode [PasswordEntry service user pwd]
-                              B.appendFile entryBook newEntry
+                              oldDecrypted <- B.readFile entryBook >>= return . decrypt
+                              newEncrypted <- encrypt $ oldDecrypted `B.append` newEntry
+                              (tempName, tempH) <- hpmFolder >>= flip openTempFile "tempEntryBook"
+                              hClose tempH
+                              B.writeFile tempName newEncrypted
+                              renameFile tempName entryBook
                               putStrLn "New password entry added to entry book."
                 
 
@@ -131,7 +144,7 @@ list = do
   case exists of
     Nothing        -> putStrLn noEntryBook
     Just entryBook -> do
-                entries <- (decode NoHeader <$> (B.readFile entryBook)) :: IO (Either String (V.Vector PasswordEntry))
+                entries <- (decode NoHeader <$> (B.readFile entryBook >>= return . decrypt)) :: IO (Either String (V.Vector PasswordEntry))
                 case entries of
                   Left _         -> putStrLn parsingProblem
                   Right entries' -> putStrLn ("\nShowing (" ++ show (V.length entries') ++ ") entries :")
@@ -144,12 +157,12 @@ delete service = do
   case exists of
     Nothing        -> putStrLn noEntryBook
     Just entryBook -> do
-                entries <- (decode NoHeader <$> (B.readFile entryBook)) :: IO (Either String (V.Vector PasswordEntry))
+                entries <- (decode NoHeader <$> (B.readFile entryBook >>= return . decrypt)) :: IO (Either String (V.Vector PasswordEntry))
                 case entries of
                   Left _         -> putStrLn parsingProblem
                   Right entries' -> do
                                let newEntries = flip V.filter entries' (\e -> service /= getService e)
-                               B.writeFile entryBook (encode $ V.toList newEntries)
+                               encrypt (encode $ V.toList newEntries) >>= B.writeFile entryBook
                                putStrLn "Password entry removed if it existed.\n"
 
 -- Extracts a password associated to the service
@@ -159,7 +172,7 @@ extract service = do
   case exists of
     Nothing        -> putStrLn noEntryBook
     Just entryBook -> do
-                entries <- (decode NoHeader <$> (B.readFile entryBook)) :: IO (Either String (V.Vector PasswordEntry))
+                entries <- (decode NoHeader <$> (B.readFile entryBook >>= return . decrypt)) :: IO (Either String (V.Vector PasswordEntry))
                 case entries of
                   Left _         -> putStrLn parsingProblem
                   Right _ -> do

@@ -70,6 +70,10 @@ your nor will it fail is you try to delete a non-existing entry, in
 this case, your book will jsut stay the same, again for speed of use)
     - Extracting an entry is working
 
+- March 31, 2014
+    - Implemeted SHA512-hashing of master passwords to store the hash
+in the book library
+
 TODO
 ====
 - Rewrite 'initiate' function to use 'withLibrary' rather than calling
