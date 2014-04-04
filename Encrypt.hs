@@ -6,9 +6,7 @@ module Encrypt (
                , decrypt
               ) where
 
-import Codec.Digest.SHA (hash)
-import Codec.Digest.SHA.Monad (Length(..))
-import Codec.Crypto.SimpleAES
+import Codec.Crypto.SimpleAES (IV, crypt, Direction(..), Mode(..))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as B (ByteString, toStrict, filter, notElem)
 

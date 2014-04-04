@@ -7,9 +7,9 @@ module Types (
              , Pwd
              ) where
 
-import qualified Data.ByteString.Lazy as B
-import           Data.Csv
-import qualified Data.Vector as V
+import qualified Data.ByteString.Lazy as B (ByteString)
+import           Data.Csv (FromRecord(..), ToRecord(..), record, toField, (.!))
+import qualified Data.Vector as V (length)
 import Data.Functor ((<$>))
 import Control.Applicative ((<*>))
 import Control.Monad (mzero)

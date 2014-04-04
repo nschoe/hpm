@@ -6,17 +6,17 @@ module Main (
 
 import           BookLibrary
 import           Control.Applicative ((<$>))
-import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.Char8 as B8
+import qualified Data.ByteString.Lazy as B (readFile, writeFile, append)
+import qualified Data.ByteString.Lazy.Char8 as B8 (unpack)
 import           Data.Csv hiding (lookup)
-import qualified Data.Vector as V
+import qualified Data.Vector as V (Vector, toList, length, filter)
 import           Encrypt
 import           System.Directory (renameFile)
 import           System.Environment (getArgs)
 import           System.IO (openTempFile, hClose)
+import           System.Process (runCommand)
 import           Tools
 import           Types
-import System.Process (runCommand)
 
 main :: IO ()
 main = getArgs >>= go
