@@ -1,0 +1,31 @@
+name:                hpm
+version:             0.1.0.0
+synopsis:            A simple password manager
+description:         A simple password manager written in Haskell.
+homepage:            http://github.com/nschoe/hpm
+license:             BSD3
+license-file:        LICENSE
+author:              Nicolas Schoemaeker
+maintainer:          ns.schoe@gmail.com
+copyright:           2014 Nicolas Schoemaeker
+category:            System
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+executable hpm
+  main-is:	       Main.hs             
+  -- other-modules:       
+  other-extensions:    OverloadedStrings
+  build-depends:       base >=4.5 && <4.8, 
+                       bytestring >=0.10 && <0.11, 
+                       haskeline >=0.7 && <0.8, 
+                       vector >=0.10 && <0.11, 
+                       directory >=1.2 && <1.3, 
+                       process >=1.1 && <1.2, 
+                       filepath >=1.3 && <1.4,
+                       cassava >=0.3 && <0.4,
+                       SimpleAES >=0.4 && <0.5
+  -- hs-source-dirs:      
+  default-language:    Haskell2010
+  ghc-options:         -O2 -Wall
