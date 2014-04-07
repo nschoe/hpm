@@ -16,6 +16,7 @@ import Data.Functor ((<$>))
 import System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
 import System.FilePath ((</>))
 import System.Process (runCommand)
+import System.Hclip (setClipboard)
 
 -- Classic usage command showing commands and their syntax
 usage :: String
@@ -71,8 +72,15 @@ promptUser :: IO String
 promptUser = putStrLn "Type user name : " >> getLine
 
 -- Copy the password into the user's clipboard
+{-
 toClipboard :: B.ByteString -> IO ()
 toClipboard password = do
   let passwordStr = B8.unpack password
   _ <- runCommand $ "echo " ++ passwordStr ++ " | xclip -i"
   putStrLn "Password now in clipboard."
+-}
+toClipboard :: B.ByteString -> IO ()
+toClipboard password = do
+  let passwordStr = B8.unpack password
+  setClipboard passwordStr
+  return ()

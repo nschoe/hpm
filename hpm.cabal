@@ -25,7 +25,8 @@ executable hpm
                        process >=1.1 && <1.2, 
                        filepath >=1.3 && <1.4,
                        cassava >=0.3 && <0.4,
-                       SimpleAES >=0.4 && <0.5
+                       SimpleAES >=0.4 && <0.5,
+                       Hclip >= 2.0
   -- hs-source-dirs:      
   default-language:    Haskell2010
   ghc-options:         -O2 -Wall
