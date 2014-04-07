@@ -29,8 +29,8 @@ main = getArgs >>= go
           go ("-r":_)                     = go ["--reset"]
           go ("--add":service:user:_)     = add service user
           go ("-a":service:user:_)        = go ["--add", service, user]
-          go ("--delete":service:_)       = delete service
-          go ("-d":service:_)             = go ["--delete", service]
+          go ("--delete":service:user:_)  = delete service user
+          go ("-d":service:user:_)        = go ["--delete", service, user]
           go ("--extract":service:[])     = extract service Nothing
           go ("-e":service:[])            = go ["--extract", service]
           go ("--extract":service:user:_) = extract service (Just user)
@@ -160,8 +160,8 @@ list = do
                                     >> mapM_ (putStrLn . ("  > " ++) . show) (V.toList entries')
 
 -- Deletes a password entry associated to the service
-delete :: Service -> IO ()
-delete service = do
+delete :: Service -> User -> IO ()
+delete service user = do
   exists <- askMasterPwd >>= libraryLookup
   case exists of
     Nothing        -> putStrLn noEntryBook
@@ -170,7 +170,7 @@ delete service = do
                 case entries of
                   Left _         -> putStrLn parsingProblem
                   Right entries' -> do
-                               let newEntries = flip V.filter entries' (\e -> service /= getService e)
+                               let newEntries = flip V.filter entries' (\e -> ((service /= getService e) || (service == getService e && user /= getUser e)))
                                encrypt (encode $ V.toList newEntries) >>= B.writeFile entryBook
                                putStrLn "Password entry removed if it existed.\n"
 

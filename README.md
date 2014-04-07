@@ -40,13 +40,14 @@ manage your passwords, a book is the (encrypted) list of passwords)
   prompted for the password you want to add to that service)
 - extracting a password for a service : hpm -e, --extract <service>
 [<user>] (can be omitted if only one user)
-- deleting a stored password : hpm -d, --delete <service>
+- deleting a stored password : hpm -d, --delete <service> <user>
 - listing your services for which you have a stored password : hpm -l, --list
 
 Changelog
 =========
 - April 7, 2014
     - Added support for several entries for the same service
+    - Deletion now requires a service and a user
 
 - April 2, 2014
     - Removed SHA512-hasing of master passwords as it throws some
