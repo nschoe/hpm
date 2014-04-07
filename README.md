@@ -36,28 +36,29 @@ Here's how to use hpm :
 - create an new entry book and a master password : hpm -i, --init (a
 master password is the only password you will have to remember to
 manage your passwords, a book is the (encrypted) list of passwords)
-- adding a new password : hpm -a, --ass <service> <user> (you will be
+- adding a new password : hpm -a, --add <service> <user> (you will be
   prompted for the password you want to add to that service)
 - extracting a password for a service : hpm -e, --extract <service>
+[<user>] (can be omitted if only one user)
 - deleting a stored password : hpm -d, --delete <service>
 - listing your services for which you have a stored password : hpm -l, --list
 
 Changelog
 =========
+- April 7, 2014
+    - Added support for several entries for the same service
 
-- March 26, 2014
-    - Project initialization. I am going back to Haskell, and this is a
-recover project. Looks awesome.
-    - Verification of existing ~/.hpm/ folder and create it if non existing
-    - Asking for master password and checking if a corresponding entry
-book is associated
+- April 2, 2014
+    - Removed SHA512-hasing of master passwords as it throws some
+problems for now. It doesn't really matter much : the library file is
+already encrypted, so the master passwords never appear in plain text
+    - Implemented hiding of characters when typing passwords
+    - Now the password is stored in the clipboard when extracted, not
+printed on screen anymore
 
-- March 28, 2014
-    - Initialization of new library books is working : several books
-can be created with different master passwords, and hpm warns the user
-if he is trying to create a book with the same master password
-    - Implemented reset of a new entry book : deletes all passwords in
-the entry book associated with his master password
+- March 31, 2014
+    - Implemeted SHA512-hashing of master passwords to store the hash
+in the book library
 
 - March 29, 2014
     - Adding a new entry in one's book is working with the limitation
@@ -70,17 +71,19 @@ your nor will it fail is you try to delete a non-existing entry, in
 this case, your book will jsut stay the same, again for speed of use)
     - Extracting an entry is working
 
-- March 31, 2014
-    - Implemeted SHA512-hashing of master passwords to store the hash
-in the book library
+- March 28, 2014
+    - Initialization of new library books is working : several books
+can be created with different master passwords, and hpm warns the user
+if he is trying to create a book with the same master password
+    - Implemented reset of a new entry book : deletes all passwords in
+the entry book associated with his master password
 
-- April 2, 2014
-    - Removed SHA512-hasing of master passwords as it throws some
-problems for now. It doesn't really matter much : the library file is
-already encrypted, so the master passwords never appear in plain text
-    - Implemented hiding of characters when typing passwords
-    - Now the password is stored in the clipboard when extracted, not
-printed on screen anymore
+- March 26, 2014
+    - Project initialization. I am going back to Haskell, and this is a
+recover project. Looks awesome.
+    - Verification of existing ~/.hpm/ folder and create it if non existing
+    - Asking for master password and checking if a corresponding entry
+book is associated
 
 TODO
 ====

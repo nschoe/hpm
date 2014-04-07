@@ -7,35 +7,35 @@ module Main (
 import           BookLibrary
 import           Control.Applicative ((<$>))
 import qualified Data.ByteString.Lazy as B (readFile, writeFile, append)
-import qualified Data.ByteString.Lazy.Char8 as B8 (unpack)
 import           Data.Csv hiding (lookup)
 import qualified Data.Vector as V (Vector, toList, length, filter)
 import           Encrypt
 import           System.Directory (renameFile)
 import           System.Environment (getArgs)
 import           System.IO (openTempFile, hClose)
-import           System.Process (runCommand)
 import           Tools
 import           Types
 
 main :: IO ()
 main = getArgs >>= go
-    where go []                       = putStrLn $ "Wrong number of arguments.\n" ++ usage -- no argument : what do to ?
-          go ("--help":_)             = putStrLn usage
-          go ("-h":_)                 = go ["--help"]
-          go ("--list":_)             = list
-          go ("-l":_)                 = go ["--list"]
-          go ("--init":_)             = withLibrary (initiate Nothing)
-          go ("-i":_)                 = go ["--init"]
-          go ("--reset":_)            = reset Nothing
-          go ("-r":_)                 = go ["--reset"]
-          go ("--add":service:user:_) = add service user
-          go ("-a":service:user:_)    = go ["--add", service, user]
-          go ("--delete":service:_)   = delete service
-          go ("-d":service:_)         = go ["--delete", service]
-          go ("--extract":service:_)  = extract service
-          go ("-e":service:_)         = go ["--extract", service]
-          go _                        = putStrLn $ "Error in arguments.\n" ++ usage
+    where go []                           = putStrLn $ "Wrong number of arguments.\n" ++ usage -- no argument : what do to ?
+          go ("--help":_)                 = putStrLn usage
+          go ("-h":_)                     = go ["--help"]
+          go ("--list":_)                 = list
+          go ("-l":_)                     = go ["--list"]
+          go ("--init":_)                 = withLibrary (initiate Nothing)
+          go ("-i":_)                     = go ["--init"]
+          go ("--reset":_)                = reset Nothing
+          go ("-r":_)                     = go ["--reset"]
+          go ("--add":service:user:_)     = add service user
+          go ("-a":service:user:_)        = go ["--add", service, user]
+          go ("--delete":service:_)       = delete service
+          go ("-d":service:_)             = go ["--delete", service]
+          go ("--extract":service:[])     = extract service Nothing
+          go ("-e":service:[])            = go ["--extract", service]
+          go ("--extract":service:user:_) = extract service (Just user)
+          go ("-e":service:user:_)        = go ["--extract", service, user]
+          go _                            = putStrLn $ "Error in arguments.\n" ++ usage
 
 -- Prompt the user for a new master password and create his associated entry book
 initiate :: Maybe String -> FilePath -> IO ()
@@ -76,17 +76,17 @@ libraryLookup pwd = withLibrary $ \libFile -> do
                         Right library -> return $ entryLookup pwd (V.toList library)
 
 -- Lookup generalized for the entry book.
-bookLookup :: FilePath -> Service -> IO (Maybe Pwd)
+bookLookup :: FilePath -> Service -> IO ([(User, Pwd)])
 bookLookup book serv = do
   entries <- decode NoHeader <$> (B.readFile book >>= return . decrypt)
   case entries of
     Left _ -> error parsingProblem
     Right entries' -> return $ bookLookup' serv (V.toList entries')
 
-bookLookup' :: Service -> [PasswordEntry] -> Maybe Pwd
-bookLookup' _ [] = Nothing
+bookLookup' :: Service -> [PasswordEntry] -> [(User, Pwd)]
+bookLookup' _ [] = []
 bookLookup' serv (x:xs) = if serv == getService x then
-                              Just (getPwd x)
+                              (getUser x, getPwd x) : bookLookup' serv xs
                           else
                               bookLookup' serv xs
 
@@ -125,19 +125,26 @@ add service user =
               go (Just entryBook) = do
                 -- Check that there is not already a password entry for that service
                 exists <- withBook entryBook (flip bookLookup service)
-                case exists of
-                  Just _  -> putStrLn $ "There already exists a password entry for service \"" ++ service ++ "\" in your book."
-                  Nothing -> do
-                              pwd <- askPassword (Just $ "Type the password you want to associate to service \"" ++ service ++ "\" and user \"" ++ user ++ "\": ")
-                              let newEntry = encode [PasswordEntry service user pwd]
-                              oldDecrypted <- B.readFile entryBook >>= return . decrypt
-                              newEncrypted <- encrypt $ oldDecrypted `B.append` newEntry
-                              (tempName, tempH) <- hpmFolder >>= flip openTempFile "tempEntryBook"
-                              hClose tempH
-                              B.writeFile tempName newEncrypted
-                              renameFile tempName entryBook
-                              putStrLn "New password entry added to entry book."
-                
+                let matchUser = filter (\(u, _) -> u == user) exists
+                if length matchUser == 0 then
+                    addEntry entryBook service user
+                else
+                   putStrLn $ "There already exists a password entry for service \"" ++ service ++ "\" and user \"" ++ user ++ "\" in your book." 
+                {-case matchUser of
+                  (_:_)  -> putStrLn $ "There already exists a password entry for service \"" ++ service ++ "\" and user \"" ++ user ++ "\" in your book."
+                  [] -> addEntry entryBook service user-}
+
+addEntry :: FilePath -> Service -> User -> IO ()
+addEntry entryBook service user = do
+  pwd <- askPassword (Just $ "Type the password you want to associate to service \"" ++ service ++ "\" and user \"" ++ user ++ "\": ")
+  let newEntry = encode [PasswordEntry service user pwd]
+  oldDecrypted <- B.readFile entryBook >>= return . decrypt
+  newEncrypted <- encrypt $ oldDecrypted `B.append` newEntry
+  (tempName, tempH) <- hpmFolder >>= flip openTempFile "tempEntryBook"
+  hClose tempH
+  B.writeFile tempName newEncrypted
+  renameFile tempName entryBook
+  putStrLn "New password entry added to entry book."
 
 -- List password entries from an entry book
 list :: IO ()
@@ -168,9 +175,8 @@ delete service = do
                                putStrLn "Password entry removed if it existed.\n"
 
 -- Extracts a password associated to the service
-
-extract :: Service -> IO ()
-extract service = do
+extract :: Service -> Maybe User -> IO ()
+extract service maybeUser = do
   exists <- askMasterPwd >>= libraryLookup
   case exists of
     Nothing        -> putStrLn noEntryBook
@@ -179,9 +185,61 @@ extract service = do
                 case entries of
                   Left _         -> putStrLn parsingProblem
                   Right _ -> do
-                               pass <- bookLookup entryBook service
-                               case pass of
-                                 Nothing    -> putStrLn $ "No password entry for service \"" ++ service ++ "\" found in your entry book."
-                                 Just pass' -> do
-                                           let passStr = B8.unpack pass'
-                                           runCommand ("echo " ++ passStr ++ " | xclip -i") >> putStrLn "Password now in clipboard."
+                               ret <- bookLookup entryBook service
+                               case ret of
+                                 []  -> putStrLn $ "No password entry for service \"" ++ service ++ "\" found in your entry book."
+                                 xs  -> case maybeUser of
+                                          Nothing   -> extractFromOne xs service
+                                          Just user -> extractFromSeveral xs service user
+
+
+extractFromOne :: [(User, Pwd)] -> Service -> IO ()
+extractFromOne [] _ = error $ "Impossible case"
+extractFromOne [(_, pwd)] _ = toClipboard pwd
+extractFromOne xs service = do
+  putStrLn $ "Multiple users found for service \"" ++ service ++ "\"\n"
+  user <- promptUser
+  extractFromSeveral xs service user
+
+extractFromSeveral :: [(User, Pwd)] -> Service -> User -> IO ()
+extractFromSeveral [] service user = putStrLn $ "User \"" ++ user ++ "\" not found for service \"" ++ service ++ "\".\n"
+extractFromSeveral (x:xs) service user | fst x == user     = toClipboard (snd x)
+                                       | otherwise         = extractFromSeveral xs service user
+
+{-
+extract service maybeUser = do
+  exists <- askMasterPwd >>= libraryLookup
+  case exists of
+    Nothing        -> putStrLn noEntryBook
+    Just entryBook -> do
+                entries <- (decode NoHeader <$> (B.readFile entryBook >>= return . decrypt)) :: IO (Either String (V.Vector PasswordEntry))
+                case entries of
+                  Left _         -> putStrLn parsingProblem
+                  Right _ -> do
+                               ret <- bookLookup entryBook service
+                               case ret of
+                                 []  -> putStrLn $ "No password entry for service \"" ++ service ++ "\" found in your entry book."
+                                 xs  -> do
+                                   case maybeUser of
+                                     Nothing -> if length xs == 1 then
+                                                    let passStr = B8.unpack (getPwd (head xs))
+                                                    runCommand ("echo " ++ passStr ++ " | xclip -i")
+                                                    putStrLn "Password now in clipboard."
+                                                else
+                                                    putStrLn $ "Multiple users found for service \"" ++ service ++ "\"\n"
+                                                    newUser <- promptUser
+                                                    extract service (Just newUser)
+                                     Just user -> do
+                                          let matchOnly = filter ((user (==)) . getUser) xs
+                                          if length matchOnly == 1 then
+                                              let passStr = B8.unpack (getPwd (head xs))
+                                              runCommand ("echo " ++ passStr ++ " | xclip -i") >> putStrLn "Password now in clipboard."
+
+                                          else
+                                              if length matchOnly > 1 then
+                                                  error $ "Same user duplicated for a same service : impossible. File corrupted.\n"
+                                              else -- == 0  : not found
+                                                  putStrLn $ "Service \"" ++ service ++ "\" found, but not with that user, please rety.\n"
+                                                  newUser <- promptUser
+                                                  extract service (Just newUser)
+-}

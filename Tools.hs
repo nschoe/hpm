@@ -6,12 +6,16 @@ module Tools (
              , withBook
              , noEntryBook
              , parsingProblem
+             , promptUser
+             , toClipboard
              ) where
 
-import           Data.Functor ((<$>))
-import           System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
-import           System.FilePath ((</>))
-
+import qualified Data.ByteString.Lazy as B (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as B8 (unpack)
+import Data.Functor ((<$>))
+import System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
+import System.FilePath ((</>))
+import System.Process (runCommand)
 
 -- Classic usage command showing commands and their syntax
 usage :: String
@@ -62,3 +66,13 @@ withBook book f = do
     False -> error "The entry book doesn't exist, you may be looking at data corruption."
     True -> f book
 
+-- Prompts the user for its username (for a specific service)
+promptUser :: IO String
+promptUser = putStrLn "Type user name : " >> getLine
+
+-- Copy the password into the user's clipboard
+toClipboard :: B.ByteString -> IO ()
+toClipboard password = do
+  let passwordStr = B8.unpack password
+  _ <- runCommand $ "echo " ++ passwordStr ++ " | xclip -i"
+  putStrLn "Password now in clipboard."
