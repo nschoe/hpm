@@ -33,15 +33,15 @@ better divide the number by 1e6 to have a more accurate description)
 Here's how to use hpm :
 -----------------------
 
-- create an new entry book and a master password : hpm -i, --init (a
+- create an new entry book and a master password : **hpm -i, --init** (a
 master password is the only password you will have to remember to
 manage your passwords, a book is the (encrypted) list of passwords)
-- adding a new password : hpm -a, --add \<service\> \<user\> (you will be
+- adding a new password : **hpm -a, --add \<service\> \<user\>** (you will be
   prompted for the password you want to add to that service)
-- extracting a password for a service : hpm -e, --extract \<service\>
-\[\<user\>\] (can be omitted if only one user)
-- deleting a stored password : hpm -d, --delete \<service\> \<user\>
-- listing your services for which you have a stored password : hpm -l, --list
+- extracting a password for a service : **hpm -e, --extract \<service\>
+\[\<user\>\]** (can be omitted if only one user)
+- deleting a stored password : **hpm -d, --delete \<service\> \<user\>**
+- listing your services for which you have a stored password : **hpm -l, --list**
 
 Changelog
 ---------
